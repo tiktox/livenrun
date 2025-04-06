@@ -1,0 +1,2324 @@
+<!DOCTYPE html>
+<html lang="es">
+    <div id="map-bg"></div>
+<head>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nightcony - Plataforma Inmobiliaria</title>
+    <style>
+        #map-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: 0;
+        }
+
+        /* Estilos para el modal de propiedades */
+        .property-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 50px auto;
+            padding: 20px;
+            width: 80%;
+            max-width: 900px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            color: #4a6fa5;
+        }
+
+        .close-modal {
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .property-gallery {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .property-gallery img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .property-video {
+            width: 100%;
+            height: 400px;
+            margin-bottom: 20px;
+        }
+
+        .property-details {
+            margin-bottom: 20px;
+        }
+
+        .property-price {
+            font-size: 1.8rem;
+            color: #166088;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .property-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Resto de tus estilos existentes */
+        :root {
+            --primary-color: #4a6fa5;
+            --secondary-color: #166088;
+            --text-color: #333;
+            --bg-color: #f8f9fa;
+            --header-bg: #ffffff;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --border-radius: 12px;
+            --hover-color: #e9ecef;
+        }
+
+        .dark-mode {
+            --primary-color: #6d8cc0;
+            --secondary-color: #4a90e2;
+            --text-color: #f8f9fa;
+            --bg-color: #121212;
+            --header-bg: #1e1e1e;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --hover-color: #2d2d2d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 20px;
+        }
+
+        header {
+            position: relative;
+            z-index: 100;
+            background-color: var(--header-bg);
+            padding: 15px 25px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .logo img {
+            height: 40px;
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background-color: var(--hover-color);
+            border-radius: 20px;
+            padding: 8px 15px;
+            width: 40%;
+            min-width: 300px;
+        }
+
+        .search-bar input {
+            background: transparent;
+            border: none;
+            outline: none;
+            width: 100%;
+            color: var(--text-color);
+            padding: 5px 10px;
+            font-size: 0.9rem;
+        }
+
+        .search-bar i {
+            color: var(--primary-color);
+            cursor: pointer;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .nav-item {
+            position: relative;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+
+        .nav-item:hover {
+            background-color: var(--hover-color);
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: var(--header-bg);
+            min-width: 200px;
+            box-shadow: var(--shadow);
+            border-radius: var(--border-radius);
+            z-index: 1;
+            top: 100%;
+            left: 0;
+            padding: 10px 0;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 10px 20px;
+            color: var(--text-color);
+            text-decoration: none;
+            display: block;
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--hover-color);
+            border-radius: 4px;
+        }
+
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            background-color: var(--hover-color);
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .add-property {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .add-property:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .search-bar {
+                width: 100%;
+            }
+
+            .nav-links {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 20px auto;
+            }
+            
+            .property-gallery {
+                grid-template-columns: 1fr;
+            }
+            
+            .property-video {
+                height: 250px;
+            }
+        }
+        #searchResults {
+    position: absolute;
+    top: 100%; /* Coloca los resultados justo debajo del header */
+    left: 0;
+    width: 100%;
+    background-color: var(--header-bg);
+    box-shadow: var(--shadow);
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    max-height: 400px;
+    overflow-y: auto;
+    z-index: 99;
+    display: none;
+}
+
+.search-bar-container {
+    position: relative;
+    width: 40%;
+    min-width: 300px;
+}
+
+.search-bar {
+    position: relative;
+    z-index: 100; /* Asegura que la barra de búsqueda esté sobre los resultados */
+}
+    </style>
+</head>
+<body>
+    <header>
+        
+        <div class="logo" onclick="window.location.href='#'">
+            <svg xmlns="http://www.w3.org/2000/svg" height="40" viewBox="0 0 24 24" width="40" fill="var(--primary-color)">
+                <path d="M12 2L1 12h3v9h6v-6h4v6h6v-9h3L12 2zm0 2.8L18 10v9h-2v-6H8v6H6v-9l6-7.2z"/>
+            </svg>
+            <h1>Nightcony</h1>
+        </div>
+
+        <div class="search-bar-container">
+            <div class="search-bar">
+                <i class="fas fa-search" id="searchIcon"></i>
+                <input type="text" placeholder="Buscar propiedades por ciudad, tipo o palabra clave..." id="searchInput">
+            </div>
+            <div id="searchResults"></div>
+        </div>
+
+        <div class="nav-links">
+            <div class="dropdown nav-item">
+                <span>Nosotros <i class="fas fa-chevron-down"></i></span>
+                <div class="dropdown-content">
+                    <a href="#" class="dropdown-item">Misión</a>
+                    <a href="#" class="dropdown-item">Visión</a>
+                    <a href="#" class="dropdown-item">Valores</a>
+                    <a href="#" class="dropdown-item">Servicios</a>
+                    <a href="#" class="dropdown-item">FAQ</a>
+                </div>
+            </div>
+
+            <div class="theme-toggle" id="themeToggle">
+                <i class="fas fa-moon"></i>
+            </div>
+
+            <button class="add-property" id="addPropertyBtn">
+                <i class="fas fa-plus"></i> Nueva Propiedad
+            </button>
+        </div>
+    </header>
+
+    <!-- Modal para detalles de propiedad -->
+    <div id="propertyModal" class="property-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalPropertyTitle">Casa en Santo Domingo</h2>
+                <span class="close-modal" id="closeModal">&times;</span>
+            </div>
+            
+            <div class="property-gallery" id="propertyGallery">
+                <!-- Las imágenes se cargarán dinámicamente -->
+            </div>
+            
+            <div class="property-video">
+                <video controls width="100%" height="100%" id="propertyVideo">
+                    <source src="" type="video/mp4">
+                    Tu navegador no soporta videos HTML5.
+                </video>
+            </div>
+            
+            <div class="property-details">
+                <div class="property-price" id="modalPropertyPrice">RD$ 2,500,000</div>
+                <div id="modalPropertyDescription">Hermosa casa ubicada en el corazón de Santo Domingo, con amplios espacios y acabados de lujo.</div>
+                
+                <div class="property-features">
+                    <div class="feature"><i class="fas fa-bed"></i> <span id="modalBedrooms">3</span> Habitaciones</div>
+                    <div class="feature"><i class="fas fa-bath"></i> <span id="modalBathrooms">2</span> Baños</div>
+                    <div class="feature"><i class="fas fa-car"></i> <span id="modalParking">1</span> Estacionamiento</div>
+                    <div class="feature"><i class="fas fa-ruler-combined"></i> <span id="modalArea">150</span> m²</div>
+                </div>
+                
+                <div id="modalPropertyLocation"><i class="fas fa-map-marker-alt"></i> Santo Domingo, Distrito Nacional</div>
+                
+                <button id="contactOwner" style="background-color: var(--primary-color); color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-top: 15px;">
+                    Contactar al propietario
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Datos de propiedades de ejemplo
+        const propiedades = [
+            {
+                id: 1,
+                title: "Casa en Santo Domingo",
+                price: "RD$ 2,500,000",
+                description: "Hermosa casa ubicada en el corazón de Santo Domingo, con amplios espacios y acabados de lujo. Ideal para familias que buscan comodidad y elegancia.",
+                lat: 18.4861,
+                lng: -69.9312,
+                images: [
+                    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+                    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+                    "https://images.unsplash.com/photo-1493809842364-78817add7ffb?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+                    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
+                ],
+                video: "https://samplelib.com/lib/preview/mp4/sample-5s.mp4",
+                type: "venta",
+                bedrooms: 3,
+                bathrooms: 2,
+                parking: 1,
+                area: 150,
+                location: "Santo Domingo, Distrito Nacional",
+                verified: true
+            },
+            {
+                id: 2,
+                title: "Apartamento en Santiago",
+                price: "RD$ 1,800,000",
+                description: "Moderno apartamento en zona exclusiva de Santiago, con vista panorámica y amenities de primera.",
+                lat: 19.4517,
+                lng: -70.6970,
+                images: [
+                    "https://images.unsplash.com/photo-1484154218962-a197022b5858?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+                    "https://images.unsplash.com/photo-1493809842364-78817add7ffb?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+                    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+                    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
+                ],
+                video: "https://samplelib.com/lib/preview/mp4/sample-10s.mp4",
+                type: "alquiler",
+                bedrooms: 2,
+                bathrooms: 2,
+                parking: 1,
+                area: 110,
+                location: "Santiago, República Dominicana",
+                verified: true
+            },
+            {
+                id: 3,
+                title: "Villa en Punta Cana",
+                price: "US$ 350,000",
+                description: "Exclusiva villa frente al mar en Punta Cana, con acceso privado a la playa y piscina infinita.",
+                lat: 18.5601,
+                lng: -68.3725,
+                images: [
+                    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+                    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+                    "https://images.unsplash.com/photo-1493809842364-78817add7ffb?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+                    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
+                ],
+                video: "https://samplelib.com/lib/preview/mp4/sample-15s.mp4",
+                type: "venta",
+                bedrooms: 4,
+                bathrooms: 3,
+                parking: 2,
+                area: 220,
+                location: "Punta Cana, República Dominicana",
+                verified: false
+            }
+        ];
+
+        // Icono personalizado para los marcadores
+        const propertyIcon = L.icon({
+            iconUrl: 'https://github.com/tiktox/xmchat/blob/main/dcc085fd831f0d82bc0b755d8b59bb07-removebg-preview.png?raw=true',
+            iconSize: [30, 40],
+            iconAnchor: [15, 40],
+            popupAnchor: [0, -40]
+        });
+
+        // Inicializar el mapa
+        const map = L.map('map-bg', {
+            zoomControl: false,
+            attributionControl: false
+        }).setView([18.7357, -70.1627], 8);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19
+        }).addTo(map);
+
+        // Agregar marcadores para cada propiedad
+        propiedades.forEach(prop => {
+            const marker = L.marker([prop.lat, prop.lng], {
+                icon: propertyIcon
+            }).addTo(map);
+            
+            marker.bindPopup(`
+                <div style="text-align: center;">
+                    <img src="${prop.images[0]}" alt="${prop.title}" style="width: 100%; max-width: 200px; border-radius: 8px;">
+                    <h4>${prop.title}</h4>
+                    <p><strong>${prop.price}</strong></p>
+                    <button onclick="showPropertyDetails(${prop.id})" style="background-color: #4a6fa5; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+                        Ver propiedad
+                    </button>
+                </div>
+            `);
+        });
+
+        // Función para mostrar los detalles de la propiedad en el modal
+       // Reemplaza estas funciones:
+
+// Función para mostrar los detalles de la propiedad en el modal
+function showPropertyDetails(propId) {
+    const property = propiedades.find(p => p.id === propId);
+    if (!property) return;
+    
+    // Pausar cualquier video que esté reproduciéndose
+    const currentVideo = document.getElementById('propertyVideo');
+    if (currentVideo) {
+        currentVideo.pause();
+        currentVideo.currentTime = 0;
+    }
+    
+    // Actualizar el modal con los datos de la propiedad
+    document.getElementById('modalPropertyTitle').textContent = property.title;
+    document.getElementById('modalPropertyPrice').textContent = property.price;
+    document.getElementById('modalPropertyDescription').textContent = property.description;
+    document.getElementById('modalBedrooms').textContent = property.bedrooms;
+    document.getElementById('modalBathrooms').textContent = property.bathrooms;
+    document.getElementById('modalParking').textContent = property.parking;
+    document.getElementById('modalArea').textContent = property.area;
+    document.getElementById('modalPropertyLocation').innerHTML = `<i class="fas fa-map-marker-alt"></i> ${property.location}`;
+    
+    // Cargar imágenes en la galería
+    const gallery = document.getElementById('propertyGallery');
+    gallery.innerHTML = '';
+    property.images.forEach(img => {
+        const imgElement = document.createElement('img');
+        imgElement.src = img;
+        imgElement.alt = property.title;
+        gallery.appendChild(imgElement);
+    });
+    
+    // Cargar video
+    const videoElement = document.getElementById('propertyVideo');
+    videoElement.querySelector('source').src = property.video;
+    videoElement.load();
+    
+    // Mostrar el modal
+    document.getElementById('propertyModal').style.display = 'block';
+}
+
+// Cerrar el modal y pausar el video
+document.getElementById('closeModal').addEventListener('click', function() {
+    const video = document.getElementById('propertyVideo');
+    if (video) {
+        video.pause();
+        video.currentTime = 0;
+    }
+    document.getElementById('propertyModal').style.display = 'none';
+});
+
+// Cerrar el modal al hacer clic fuera del contenido y pausar el video
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('propertyModal');
+    if (event.target === modal) {
+        const video = document.getElementById('propertyVideo');
+        if (video) {
+            video.pause();
+            video.currentTime = 0;
+        }
+        modal.style.display = 'none';
+    }
+});
+        // Función de búsqueda
+       // Reemplaza la función de búsqueda con esta versión mejorada:
+
+document.getElementById('searchInput').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    if (searchTerm.length < 3) {
+        document.getElementById('searchResults').style.display = 'none';
+        return;
+    }
+    
+    const results = propiedades.filter(prop => 
+        prop.title.toLowerCase().includes(searchTerm) || 
+        prop.location.toLowerCase().includes(searchTerm) ||
+        prop.type.toLowerCase().includes(searchTerm) ||
+        prop.description.toLowerCase().includes(searchTerm)
+    );
+    
+    const resultsContainer = document.getElementById('searchResults');
+    resultsContainer.innerHTML = '';
+    
+    if (results.length > 0) {
+        results.forEach(prop => {
+            const resultItem = document.createElement('div');
+            resultItem.style.padding = '10px';
+            resultItem.style.borderBottom = '1px solid #eee';
+            resultItem.style.cursor = 'pointer';
+            resultItem.innerHTML = `
+                <h4>${prop.title}</h4>
+                <p>${prop.price} - ${prop.location}</p>
+            `;
+            resultItem.addEventListener('click', function() {
+                // Centrar el mapa en la propiedad seleccionada
+                map.setView([prop.lat, prop.lng], 15);
+                resultsContainer.style.display = 'none';
+                document.getElementById('searchInput').value = prop.title;
+            });
+            resultsContainer.appendChild(resultItem);
+        });
+        resultsContainer.style.display = 'block';
+    } else {
+        resultsContainer.innerHTML = '<div style="padding: 10px;">No se encontraron resultados</div>';
+        resultsContainer.style.display = 'block';
+    }
+});
+
+        // Cerrar resultados de búsqueda al hacer clic fuera
+        document.addEventListener('click', function(e) {
+            if (e.target.id !== 'searchInput' && e.target.id !== 'searchIcon') {
+                document.getElementById('searchResults').style.display = 'none';
+            }
+        });
+
+        // Toggle tema claro/oscuro
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+        
+        // Verificar preferencia del sistema o localStorage
+        const savedTheme = localStorage.getItem('theme') || 
+                         (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        
+        if (savedTheme === 'dark') {
+            body.classList.add('dark-mode');
+            themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+        }
+        
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark-mode');
+            
+            if (body.classList.contains('dark-mode')) {
+                localStorage.setItem('theme', 'dark');
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            } else {
+                localStorage.setItem('theme', 'light');
+                themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            }
+        });
+        
+        // Botón de nueva propiedad
+        document.getElementById('addPropertyBtn').addEventListener('click', function() {
+    document.getElementById('newPropertyModal').style.display = 'block';
+});
+
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>whiteconic - plataforma inmobiliaria</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4a6fa5;
+            --secondary-color: #166088;
+            --text-color: #333;
+            --bg-color: #f8f9fa;
+            --header-bg: #ffffff;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --border-radius: 12px;
+            --hover-color: #e9ecef;
+        }
+
+        .dark-mode {
+            --primary-color: #6d8cc0;
+            --secondary-color: #4a90e2;
+            --text-color: #f8f9fa;
+            --bg-color: #121212;
+            --header-bg: #1e1e1e;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --hover-color: #2d2d2d;
+        }
+
+        /* Estilos para modales de Nosotros */
+        .about-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .about-modal-content {
+            background-color: var(--header-bg);
+            color: var(--text-color);
+            margin: 50px auto;
+            padding: 30px;
+            width: 80%;
+            max-width: 800px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        .about-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 15px;
+        }
+
+        .about-modal-title {
+            font-size: 2rem;
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        .close-about-modal {
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: var(--text-color);
+            transition: color 0.3s;
+        }
+
+        .close-about-modal:hover {
+            color: var(--primary-color);
+        }
+
+        .about-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .about-image-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .about-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        .about-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            text-align: justify;
+        }
+
+        .values-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .value-card {
+            background-color: var(--hover-color);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s;
+        }
+
+        .value-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .value-icon {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .value-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--secondary-color);
+        }
+
+        .services-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .service-card {
+            background-color: var(--hover-color);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: var(--shadow);
+        }
+
+        .service-icon {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .service-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--secondary-color);
+        }
+
+        .faq-item {
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--hover-color);
+            padding-bottom: 15px;
+        }
+
+        .faq-question {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .faq-answer {
+            font-size: 1rem;
+            line-height: 1.5;
+            padding-left: 15px;
+            border-left: 3px solid var(--primary-color);
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .faq-answer.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .about-modal-content {
+                width: 95%;
+                padding: 15px;
+                margin: 20px auto;
+            }
+            
+            .values-grid, .services-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .about-modal-title {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Modal para Misión -->
+    <div id="missionModal" class="about-modal">
+        <div class="about-modal-content">
+            <div class="about-modal-header">
+                <h2 class="about-modal-title">Nuestra Misión</h2>
+                <span class="close-about-modal" data-modal="missionModal">&times;</span>
+            </div>
+            <div class="about-content">
+                <div class="about-image-container">
+                    <img src="https://i.pinimg.com/736x/e2/6a/d8/e26ad8f4956aab900925f860ad44e6a3.jpg" alt="Misión de whiteconic" class="about-image">
+                </div>
+                <div class="about-text">
+                    <p>En whiteconic, nuestra misión es transformar la experiencia inmobiliaria en la República Dominicana, conectando a personas con propiedades que realmente se adapten a sus necesidades y aspiraciones.</p>
+                    <p>Nos comprometemos a ofrecer un servicio transparente, personalizado y de alta calidad, utilizando tecnología de vanguardia para simplificar y agilizar el proceso de compra, venta y alquiler de propiedades.</p>
+                    <p>Trabajamos con pasión para construir relaciones duraderas basadas en la confianza, la integridad y la excelencia en el servicio, aspirando a ser el socio inmobiliario preferido por dominicanos y extranjeros que buscan hacer del país su hogar.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Visión -->
+    <div id="visionModal" class="about-modal">
+        <div class="about-modal-content">
+            <div class="about-modal-header">
+                <h2 class="about-modal-title">Nuestra Visión</h2>
+                <span class="close-about-modal" data-modal="visionModal">&times;</span>
+            </div>
+            <div class="about-content">
+                <div class="about-image-container">
+                    <img src="https://i.pinimg.com/736x/d5/75/ff/d575ff3ac86b7db5f9596f15ee7029c3.jpg" alt="Visión de whiteconic" class="about-image">
+                </div>
+                <div class="about-text">
+                    <p>Aspiramos a ser la plataforma inmobiliaria líder en la República Dominicana, reconocida por revolucionar la manera en que las personas encuentran, compran, venden y alquilan propiedades.</p>
+                    <p>Visualizamos un futuro donde la tecnología y el toque humano se combinen perfectamente para crear experiencias inmobiliarias sin fricciones, permitiendo a nuestros clientes tomar decisiones informadas con confianza y tranquilidad.</p>
+                    <p>Buscamos ser catalizadores del desarrollo sostenible de comunidades, contribuyendo al crecimiento ordenado del sector inmobiliario dominicano y estableciendo nuevos estándares de calidad, innovación y servicio en la industria.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Valores -->
+    <div id="valuesModal" class="about-modal">
+        <div class="about-modal-content">
+            <div class="about-modal-header">
+                <h2 class="about-modal-title">Nuestros Valores</h2>
+                <span class="close-about-modal" data-modal="valuesModal">&times;</span>
+            </div>
+            <div class="about-content">
+                <div class="about-image-container">
+                    <img src="https://i.pinimg.com/736x/b7/76/64/b77664c6579d2adfa680e8b1cd81787f.jpg" alt="Valores de whiteconic" class="about-image">
+                </div>
+                <div class="about-text">
+                    <p>En whiteconic, nuestros valores fundamentales definen quiénes somos y cómo operamos día a día. Son los pilares sobre los que construimos relaciones sólidas con nuestros clientes, colaboradores y comunidades.</p>
+                    
+                    <div class="values-grid">
+                        <div class="value-card">
+                            <div class="value-icon"><i class="fas fa-handshake"></i></div>
+                            <h3 class="value-title">Integridad</h3>
+                            <p>Actuamos con honestidad y transparencia en todas nuestras interacciones, manteniendo los más altos estándares éticos en cada transacción.</p>
+                        </div>
+                        
+                        <div class="value-card">
+                            <div class="value-icon"><i class="fas fa-star"></i></div>
+                            <h3 class="value-title">Excelencia</h3>
+                            <p>Nos esforzamos constantemente por superar expectativas, ofreciendo un servicio de calidad superior y buscando la mejora continua.</p>
+                        </div>
+                        
+                        <div class="value-card">
+                            <div class="value-icon"><i class="fas fa-users"></i></div>
+                            <h3 class="value-title">Compromiso</h3>
+                            <p>Nos dedicamos plenamente a entender las necesidades de nuestros clientes y a trabajar incansablemente para satisfacerlas.</p>
+                        </div>
+                        
+                        <div class="value-card">
+                            <div class="value-icon"><i class="fas fa-lightbulb"></i></div>
+                            <h3 class="value-title">Innovación</h3>
+                            <p>Adoptamos nuevas tecnologías y enfoques creativos para mejorar continuamente la experiencia inmobiliaria.</p>
+                        </div>
+                        
+                        <div class="value-card">
+                            <div class="value-icon"><i class="fas fa-heart"></i></div>
+                            <h3 class="value-title">Empatía</h3>
+                            <p>Entendemos que cada cliente es único, y adaptamos nuestros servicios para satisfacer sus necesidades específicas con sensibilidad y comprensión.</p>
+                        </div>
+                        
+                        <div class="value-card">
+                            <div class="value-icon"><i class="fas fa-tree"></i></div>
+                            <h3 class="value-title">Sostenibilidad</h3>
+                            <p>Promovemos prácticas responsables que contribuyan al desarrollo sostenible del sector inmobiliario y de nuestras comunidades.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Servicios -->
+    <div id="servicesModal" class="about-modal">
+        <div class="about-modal-content">
+            <div class="about-modal-header">
+                <h2 class="about-modal-title">Nuestros Servicios</h2>
+                <span class="close-about-modal" data-modal="servicesModal">&times;</span>
+            </div>
+            <div class="about-content">
+                <div class="about-image-container">
+                    <img src="https://i.pinimg.com/736x/e9/53/f3/e953f331a3b5cbee178919bd5e9cbf16.jpg" alt="Servicios de whiteconic" class="about-image">
+                </div>
+                <div class="about-text">
+                    <p>En whiteconic ofrecemos una gama completa de servicios inmobiliarios diseñados para cubrir todas sus necesidades, ya sea que esté buscando comprar, vender, alquilar o invertir en propiedades en la República Dominicana.</p>
+                    
+                    <div class="services-container">
+                        <div class="service-card">
+                            <div class="service-icon"><i class="fas fa-home"></i></div>
+                            <h3 class="service-title">Compra y Venta</h3>
+                            <p>Asesoramos durante todo el proceso de compra o venta de propiedades, desde la valoración inicial hasta el cierre de la transacción, garantizando un proceso fluido y seguro.</p>
+                        </div>
+                        
+                        <div class="service-card">
+                            <div class="service-icon"><i class="fas fa-key"></i></div>
+                            <h3 class="service-title">Alquiler</h3>
+                            <p>Facilitamos el encuentro entre propietarios e inquilinos, gestionando contratos y verificaciones para asegurar relaciones de alquiler exitosas y duraderas.</p>
+                        </div>
+                        
+                        <div class="service-card">
+                            <div class="service-icon"><i class="fas fa-chart-line"></i></div>
+                            <h3 class="service-title">Asesoría en Inversiones</h3>
+                            <p>Ofrecemos análisis de mercado y recomendaciones personalizadas para maximizar el retorno de sus inversiones inmobiliarias en la República Dominicana.</p>
+                        </div>
+                        
+                        <div class="service-card">
+                            <div class="service-icon"><i class="fas fa-camera"></i></div>
+                            <h3 class="service-title">Marketing Digital</h3>
+                            <p>Promocionamos su propiedad con estrategias de marketing avanzadas, fotografía profesional, videos de alta calidad y tours virtuales para atraer compradores potenciales.</p>
+                        </div>
+                        
+                        <div class="service-card">
+                            <div class="service-icon"><i class="fas fa-file-contract"></i></div>
+                            <h3 class="service-title">Gestión Legal</h3>
+                            <p>Contamos con asesores legales especializados que garantizan que todas las transacciones cumplan con las normativas dominicanas y protegen sus intereses.</p>
+                        </div>
+                        
+                        <div class="service-card">
+                            <div class="service-icon"><i class="fas fa-building"></i></div>
+                            <h3 class="service-title">Administración de Propiedades</h3>
+                            <p>Manejamos todos los aspectos de la gestión de su propiedad, desde el mantenimiento hasta la gestión de inquilinos, para propietarios ausentes o inversores.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para FAQ -->
+    <div id="faqModal" class="about-modal">
+        <div class="about-modal-content">
+            <div class="about-modal-header">
+                <h2 class="about-modal-title">Preguntas Frecuentes</h2>
+                <span class="close-about-modal" data-modal="faqModal">&times;</span>
+            </div>
+            <div class="about-content">
+                <div class="about-image-container">
+                    <img src="https://i.pinimg.com/736x/93/f5/ba/93f5ba098011a8b764ca5df012e97051.jpg" alt="FAQ de whiteconic" class="about-image">
+                </div>
+                <div class="about-text">
+                    <p>Encuentra respuestas a las preguntas más comunes sobre nuestros servicios y el mercado inmobiliario en República Dominicana.</p>
+                    
+                    <div class="faq-container">
+                        <div class="faq-item">
+                            <div class="faq-question">
+                                ¿Qué documentos necesito para comprar una propiedad en República Dominicana?
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div class="faq-answer">
+                                Para comprar una propiedad en República Dominicana necesitará: identificación válida (cédula o pasaporte), comprobante de ingresos, número de identificación fiscal (RNC para empresas o cédula para dominicanos), y en caso de extranjeros, se recomienda obtener un NIT (Número de Identificación Tributaria). Además, deberá verificar que la propiedad tenga título limpio y deslinde.
+                            </div>
+                        </div>
+                        
+                        <div class="faq-item">
+                            <div class="faq-question">
+                                ¿Cuáles son los costos adicionales al comprar una propiedad?
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div class="faq-answer">
+                                Los costos adicionales incluyen: impuesto de transferencia (3% del valor de la propiedad), honorarios legales (1-2%), gastos de registro y documentación (aproximadamente 1.5%), comisión inmobiliaria (generalmente entre 3-5% pagada por el vendedor), y posibles gastos de tasación.
+                            </div>
+                        </div>
+                        
+                        <div class="faq-item">
+                            <div class="faq-question">
+                                ¿Pueden los extranjeros comprar propiedades en República Dominicana?
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div class="faq-answer">
+                                Sí, los extranjeros tienen los mismos derechos que los dominicanos para comprar propiedades en República Dominicana, con la excepción de algunas restricciones en zonas fronterizas. No hay límites en cuanto a la cantidad de propiedades que pueden adquirir.
+                            </div>
+                        </div>
+                        
+                        <div class="faq-item">
+                            <div class="faq-question">
+                                ¿Cómo funciona el proceso de financiamiento para una propiedad?
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div class="faq-answer">
+                                Los bancos dominicanos ofrecen financiamiento tanto a dominicanos como a extranjeros. Generalmente financian hasta el 70-80% del valor de la propiedad para residentes y hasta 60-70% para no residentes. Los plazos suelen ser de hasta 20-30 años, y las tasas de interés varían según el banco y el perfil del cliente.
+                            </div>
+                        </div>
+                        
+                        <div class="faq-item">
+                            <div class="faq-question">
+                                ¿Qué garantías ofrece whiteconic sobre las propiedades?
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div class="faq-answer">
+                                En whiteconic verificamos la documentación legal de todas las propiedades que listamos, asegurándonos de que tengan títulos limpios y estén libres de gravámenes. Trabajamos con abogados especializados que realizan las debidas diligencias para garantizar transacciones seguras y transparentes.
+                            </div>
+                        </div>
+                        
+                        <div class="faq-item">
+                            <div class="faq-question">
+                                ¿Cuánto tiempo toma normalmente el proceso de compra?
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div class="faq-answer">
+                                El proceso completo de compra puede tomar entre 30 y 90 días, dependiendo de varios factores como la complejidad de la transacción, si hay financiamiento involucrado, y la eficiencia de las entidades gubernamentales en el procesamiento de documentos. Nuestro equipo trabaja para agilizar el proceso lo máximo posible.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Función para abrir la ventana modal correspondiente
+        function openAboutModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        // Cerrar modales al hacer clic en la X
+        document.querySelectorAll('.close-about-modal').forEach(closeBtn => {
+            closeBtn.addEventListener('click', function() {
+                const modalId = this.getAttribute('data-modal');
+                document.getElementById(modalId).style.display = 'none';
+            });
+        });
+
+        // Cerrar modales al hacer clic fuera del contenido
+        window.addEventListener('click', function(event) {
+            document.querySelectorAll('.about-modal').forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+
+        // Toggle para preguntas frecuentes
+        document.querySelectorAll('.faq-question').forEach(question => {
+            question.addEventListener('click', function() {
+                const answer = this.nextElementSibling;
+                const icon = this.querySelector('i');
+                
+                if (answer.classList.contains('active')) {
+                    answer.classList.remove('active');
+                    icon.classList.remove('fa-chevron-up');
+                    icon.classList.add('fa-chevron-down');
+                } else {
+                    answer.classList.add('active');
+                    icon.classList.remove('fa-chevron-down');
+                    icon.classList.add('fa-chevron-up');
+                }
+            });
+        });
+
+        // Exponer función para uso externo
+        window.openAboutModal = openAboutModal;
+        // Agregar event listeners para los elementos del menú Nosotros
+document.addEventListener('DOMContentLoaded', function() {
+    // Primero, inyectar los modales en el body
+    fetch('about-us-modals.html')
+        .then(response => response.text())
+        .then(html => {
+            // Crear un div temporal para contener el HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            
+            // Extraer los modales y añadirlos al body
+            const modals = tempDiv.querySelectorAll('.about-modal');
+            modals.forEach(modal => {
+                document.body.appendChild(modal);
+            });
+            
+            // Extraer el script y añadirlo al body
+            const scripts = tempDiv.querySelectorAll('script');
+            scripts.forEach(script => {
+                const newScript = document.createElement('script');
+                newScript.textContent = script.textContent;
+                document.body.appendChild(newScript);
+            });
+            
+            // Añadir estilos si no están ya incluidos
+            if (!document.querySelector('style[data-about-modals]')) {
+                const styles = tempDiv.querySelectorAll('style');
+                styles.forEach(style => {
+                    const newStyle = document.createElement('style');
+                    newStyle.setAttribute('data-about-modals', 'true');
+                    newStyle.textContent = style.textContent;
+                    document.head.appendChild(newStyle);
+                });
+            }
+            
+            // Configurar event listeners para los elementos del menú
+            setupMenuListeners();
+        })
+        .catch(error => {
+            console.error('Error al cargar los modales:', error);
+            // Fallback: configurar event listeners de todos modos
+            setupMenuListeners();
+        });
+});
+
+function setupMenuListeners() {
+    // Mapeo de elementos del menú a sus modales correspondientes
+    const menuToModalMap = {
+        'Misión': 'missionModal',
+        'Visión': 'visionModal',
+        'Valores': 'valuesModal',
+        'Servicios': 'servicesModal',
+        'FAQ': 'faqModal'
+    };
+    
+    // Encontrar todos los elementos del menú desplegable
+    const menuItems = document.querySelectorAll('.dropdown-content .dropdown-item');
+    
+    menuItems.forEach(item => {
+        const itemText = item.textContent.trim();
+        
+        if (menuToModalMap[itemText]) {
+            // Prevenir la navegación predeterminada y abrir el modal
+            item.addEventListener('click', function(event) {
+                event.preventDefault();
+                
+                // Verificar si la función openAboutModal está disponible
+                if (typeof window.openAboutModal === 'function') {
+                    window.openAboutModal(menuToModalMap[itemText]);
+                } else {
+                    // Fallback: abrir el modal directamente
+                    const modal = document.getElementById(menuToModalMap[itemText]);
+                    if (modal) modal.style.display = 'block';
+                }
+            });
+        }
+    });
+}
+    </script>
+</body>
+</html>
+<style>
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        overflow-y: auto;
+    }
+
+    .modal-content {
+        background-color: var(--header-bg);
+        color: var(--text-color);
+        margin: 20px auto;
+        width: 90%;
+        max-width: 800px;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow);
+        animation: modalFadeIn 0.3s;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    @keyframes modalFadeIn {
+        from {opacity: 0; transform: translateY(-50px);}
+        to {opacity: 1; transform: translateY(0);}
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--hover-color);
+    }
+
+    .modal-title {
+        font-size: 1.5rem;
+        color: var(--primary-color);
+        font-weight: bold;
+    }
+
+    .close-modal {
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--text-color);
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .modal-footer {
+        padding: 15px 20px;
+        border-top: 1px solid var(--hover-color);
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    .form-section {
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid var(--hover-color);
+    }
+
+    .form-section-title {
+        font-size: 1.2rem;
+        color: var(--primary-color);
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+    }
+
+    .form-section-title i {
+        margin-right: 10px;
+    }
+
+    .form-row {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0 -10px 15px;
+    }
+
+    .form-column {
+        flex: 1;
+        padding: 0 10px;
+        min-width: 250px;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 15px;
+        border: 1px solid var(--hover-color);
+        border-radius: 6px;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-size: 0.9rem;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+    }
+
+    .radio-group {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap; 
+    }
+
+    .radio-option {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border-radius: 20px;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .btn-secondary {
+        background-color: var(--hover-color);
+        color: var(--text-color);
+    }
+
+    .btn:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+
+    textarea.form-control {
+        min-height: 120px;
+        resize: vertical;
+    }
+
+    .file-upload {
+        position: relative;
+        padding: 10px;
+        border: 2px dashed var(--hover-color);
+        border-radius: 6px;
+        text-align: center;
+        cursor: pointer;
+        margin-bottom: 10px;
+    }
+
+    .file-upload:hover {
+        border-color: var(--primary-color);
+    }
+
+    .file-upload input[type="file"] {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .uploaded-files {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .thumbnail {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
+
+    .map-container {
+        height: 300px;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-bottom: 15px;
+    }
+
+    .checkbox-group {
+        margin-bottom: 10px;
+    }
+
+    .step-indicator {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        overflow-x: auto;
+        padding-bottom: 10px;
+    }
+
+    .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+        min-width: 80px;
+    }
+
+    .step-number {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background-color: var(--hover-color);
+        color: var(--text-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+
+    .step.active .step-number {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .step-text {
+        font-size: 0.8rem;
+        text-align: center;
+    }
+
+    .step-connector {
+        flex-grow: 1;
+        height: 2px;
+        background-color: var(--hover-color);
+        margin: 15px 5px 0;
+    }
+
+    .form-page {
+        display: none;
+    }
+
+    .form-page.active {
+        display: block;
+    }
+
+    /* Responsive ajustments */
+    @media (max-width: 768px) {
+        .form-column {
+            flex: 100%;
+        }
+        
+        .modal-content {
+            width: 95%;
+            margin: 10px auto;
+        }
+    }
+</style>
+
+<!-- Modal para nueva propiedad -->
+<div id="newPropertyModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">
+                <i class="fas fa-plus-circle"></i>
+                Nueva Propiedad
+            </h2>
+            <span class="close-modal" id="closeModal">&times;</span>
+        </div>
+        
+        <div class="modal-body">
+            <div class="step-indicator">
+                <div class="step active" data-step="1">
+                    <div class="step-number">1</div>
+                    <div class="step-text">Información del Propietario</div>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step" data-step="2">
+                    <div class="step-number">2</div>
+                    <div class="step-text">Detalles</div>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step" data-step="3">
+                    <div class="step-number">3</div>
+                    <div class="step-text">Ubicación</div>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step" data-step="4">
+                    <div class="step-number">4</div>
+                    <div class="step-text">Características</div>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step" data-step="5">
+                    <div class="step-number">5</div>
+                    <div class="step-text">Precio</div>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step" data-step="6">
+                    <div class="step-number">6</div>
+                    <div class="step-text">Multimedia</div>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step" data-step="7">
+                    <div class="step-number">7</div>
+                    <div class="step-text">Documentos</div>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step" data-step="8">
+                    <div class="step-number">8</div>
+                    <div class="step-text">Preferencias</div>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step" data-step="9">
+                    <div class="step-number">9</div>
+                    <div class="step-text">Finalizar</div>
+                </div>
+            </div>
+            <form id="propertyForm" action="send_email.php" method="POST" enctype="multipart/form-data">
+                <!-- El resto de tu formulario permanece igual -->
+                <form id="propertyForm" action="https://formsubmit.co/tu-email@dominio.com" method="POST">
+                    <!-- Añade estos campos ocultos dentro del formulario -->
+                    <input type="hidden" name="_subject" value="Nueva Propiedad Registrada">
+                    <input type="hidden" name="_template" value="table">
+                    <input type="hidden" name="_captcha" value="false">
+                    <input type="hidden" name="_next" value="https://tusitio.com/gracias.html">
+                    
+                    <!-- El resto de tu formulario permanece igual -->
+                    ...
+            </form>
+            <form id="propertyForm">
+                </form>
+                <!-- Página 1: Información del Propietario -->
+                <div class="form-page active" data-page="1">
+                    <div class="form-section">
+                        <h3 class="form-section-title">
+                            <i class="fas fa-user"></i>
+                            Información del Propietario / Cliente
+                        </h3>
+                        <div class="form-row">
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="ownerName">Nombre completo *</label>
+                                    <input type="text" id="ownerName" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="ownerPhone">Teléfono de contacto *</label>
+                                    <input type="tel" id="ownerPhone" class="form-control" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="ownerEmail">Correo electrónico *</label>
+                                    <input type="email" id="ownerEmail" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="isOwner">¿Es usted el propietario o representante autorizado? *</label>
+                                    <div class="radio-group">
+                                        <div class="radio-option">
+                                            <input type="radio" id="isOwnerYes" name="isOwner" value="si" required>
+                                            <label for="isOwnerYes">Sí</label>
+                                        </div>
+                                        <div class="radio-option">
+                                            <input type="radio" id="isOwnerNo" name="isOwner" value="no">
+                                            <label for="isOwnerNo">No</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="ownerID">Identificación personal (opcional)</label>
+                                    <input type="text" id="ownerID" class="form-control" placeholder="Cédula o Pasaporte">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Página 2: Detalles de la Propiedad -->
+                <div class="form-page" data-page="2">
+                    <div class="form-section">
+                        <h3 class="form-section-title">
+                            <i class="fas fa-home"></i>
+                            Detalles de la Propiedad
+                        </h3>
+                        <div class="form-row">
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="propertyType">Tipo de propiedad *</label>
+                                    <select id="propertyType" class="form-control" required>
+                                        <option value="">Seleccione un tipo</option>
+                                        <option value="casa">Casa</option>
+                                        <option value="apartamento">Apartamento</option>
+                                        <option value="solar">Solar</option>
+                                        <option value="terreno">Terreno</option>
+                                        <option value="negocio">Negocio</option>
+                                        <option value="oficina">Oficina</option>
+                                        <option value="local">Local comercial</option>
+                                        <option value="proyecto">Proyecto</option>
+                                        <option value="otro">Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="propertyTitle">Título del anuncio *</label>
+                                    <input type="text" id="propertyTitle" class="form-control" placeholder="Ej: Casa familiar en Santo Domingo con patio grande" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="propertyDescription">Descripción detallada *</label>
+                            <textarea id="propertyDescription" class="form-control" placeholder="Describa su propiedad con detalles atractivos para los potenciales compradores/inquilinos (mínimo 200 caracteres)" required></textarea>
+                            <small>Mínimo 200 caracteres</small>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="propertyAddress">Dirección exacta *</label>
+                                    <input type="text" id="propertyAddress" class="form-control" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="propertyProvince">Provincia / Ciudad *</label>
+                                    <select id="propertyProvince" class="form-control" required>
+                                        <option value="">Seleccione</option>
+                                        <option value="santodomingo">Santo Domingo</option>
+                                        <option value="santiago">Santiago</option>
+                                        <option value="puertoPlata">Puerto Plata</option>
+                                        <option value="laRomana">La Romana</option>
+                                        <option value="sanCristobal">San Cristóbal</option>
+                                        <option value="laVega">La Vega</option>
+                                        <option value="sanPedro">San Pedro de Macorís</option>
+                                        <option value="samana">Samaná</option>
+                                        <!-- Agregar más provincias según sea necesario -->
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="propertySector">Sector / Zona *</label>
+                                    <input type="text" id="propertySector" class="form-control" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Página 3: Ubicación en el Mapa -->
+                <div class="form-page" data-page="3">
+                    <div class="form-section">
+                        <h3 class="form-section-title">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Ubicación en el Mapa
+                        </h3>
+                        <p>Coloque un pin en el mapa para indicar la ubicación exacta de su propiedad.</p>
+                        <div class="map-container" id="mapContainer">
+                            <!-- Aquí irá el mapa de Google Maps o Leaflet -->
+                            <div style="background-color: #e9ecef; height: 100%; display: flex; align-items: center; justify-content: center;">
+                                Mapa interactivo de ubicación
+                                <!-- Este div es temporal, será reemplazado por el mapa real -->
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="propertyLatitude">Latitud</label>
+                                    <input type="text" id="propertyLatitude" class="form-control" readonly>
+                                </div>
+                            </div>
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="propertyLongitude">Longitud</label>
+                                    <input type="text" id="propertyLongitude" class="form-control" readonly>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Página 4: Detalles técnicos -->
+                <div class="form-page" data-page="4">
+                    <div class="form-section">
+                        <h3 class="form-section-title">
+                            <i class="fas fa-ruler-combined"></i>
+                            Detalles técnicos
+                        </h3>
+                        <div class="form-row">
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="propertyLandSize">Tamaño del terreno (m²) *</label>
+                                    <input type="number" id="propertyLandSize" class="form-control" min="0" required>
+                                </div>
+                            </div>
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="propertyBuildSize">Tamaño de construcción (m²)</label>
+                                    <input type="number" id="propertyBuildSize" class="form-control" min="0">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="propertyBedrooms">Cantidad de habitaciones</label>
+                                    <input type="number" id="propertyBedrooms" class="form-control" min="0">
+                                </div>
+                            </div>
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="propertyBathrooms">Cantidad de baños</label>
+                                    <input type="number" id="propertyBathrooms" class="form-control" min="0">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="propertyParking">Estacionamientos</label>
+                                    <input type="number" id="propertyParking" class="form-control" min="0">
+                                </div>
+                            </div>
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="propertyYear">Año de construcción</label>
+                                    <input type="number" id="propertyYear" class="form-control" min="1900" max="2100">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="propertyStatus">Estado de la propiedad *</label>
+                                    <select id="propertyStatus" class="form-control" required>
+                                        <option value="">Seleccione un estado</option>
+                                        <option value="nueva">Nueva</option>
+                                        <option value="usada">Usada</option>
+                                        <option value="remodelacion">En remodelación</option>
+                                        <option value="proyecto">Proyecto</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Página 5: Información financiera -->
+                <div class="form-page" data-page="5">
+                    <div class="form-section">
+                        <h3 class="form-section-title">
+                            <i class="fas fa-dollar-sign"></i>
+                            Información financiera
+                        </h3>
+                        <div class="form-row">
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="listingType">Tipo de publicación *</label>
+                                    <select id="listingType" class="form-control" required>
+                                        <option value="">Seleccione</option>
+                                        <option value="venta">Venta</option>
+                                        <option value="alquiler">Alquiler</option>
+                                        <option value="proyecto">Proyecto</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="propertyPrice">Precio total (RD$) *</label>
+                                    <input type="number" id="propertyPrice" class="form-control" min="0" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="isNegotiable">¿El precio es negociable?</label>
+                                    <div class="radio-group">
+                                        <div class="radio-option">
+                                            <input type="radio" id="isNegotiableYes" name="isNegotiable" value="si">
+                                            <label for="isNegotiableYes">Sí</label>
+                                        </div>
+                                        <div class="radio-option">
+                                            <input type="radio" id="isNegotiableNo" name="isNegotiable" value="no">
+                                            <label for="isNegotiableNo">No</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="acceptsFinancing">¿Acepta financiamiento?</label>
+                                    <div class="radio-group">
+                                        <div class="radio-option">
+                                            <input type="radio" id="acceptsFinancingYes" name="acceptsFinancing" value="si">
+                                            <label for="acceptsFinancingYes">Sí</label>
+                                        </div>
+                                        <div class="radio-option">
+                                            <input type="radio" id="acceptsFinancingNo" name="acceptsFinancing" value="no">
+                                            <label for="acceptsFinancingNo">No</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Página 6: Fotos y videos -->
+                <div class="form-page" data-page="6">
+                    <div class="form-section">
+                        <h3 class="form-section-title">
+                            <i class="fas fa-images"></i>
+                            Fotos y videos
+                        </h3>
+                        <div class="form-group">
+                            <label class="form-label">Imágenes de la propiedad (máximo 10) *</label>
+                            <div class="file-upload">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <p>Haga clic o arrastre para subir imágenes</p>
+                                <input type="file" id="propertyImages" accept="image/jpeg,image/png,image/webp" multiple>
+                            </div>
+                            <small>Formatos aceptados: JPEG, PNG, WEBP</small>
+                            <div class="uploaded-files" id="imagesPreview">
+                                <!-- Aquí irán las miniaturas de las imágenes subidas -->
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="videoURL">Video (opcional)</label>
+                            <input type="text" id="videoURL" class="form-control" placeholder="URL de YouTube o enlace de video">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Video de la propiedad (opcional)</label>
+                            <div class="file-upload">
+                                <i class="fas fa-video"></i>
+                                <p>Haga clic o arrastre para subir video</p>
+                                <input type="file" id="propertyVideo" accept="video/mp4">
+                            </div>
+                            <small>Formato aceptado: MP4</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Plano de la propiedad (opcional)</label>
+                            <div class="file-upload">
+                                <i class="fas fa-project-diagram"></i>
+                                <p>Haga clic o arrastre para subir plano</p>
+                                <input type="file" id="propertyPlan" accept="image/jpeg,image/png,image/webp,application/pdf">
+                            </div>
+                            <small>Formatos aceptados: JPEG, PNG, WEBP, PDF</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Página 7: Documentación -->
+                <div class="form-page" data-page="7">
+                    <div class="form-section">
+                        <h3 class="form-section-title">
+                            <i class="fas fa-file-alt"></i>
+                            Documentación (opcional pero recomendado)
+                        </h3>
+                        <div class="form-group">
+                            <label class="form-label">Certificado de título</label>
+                            <div class="file-upload">
+                                <i class="fas fa-certificate"></i>
+                                <p>Haga clic o arrastre para subir certificado</p>
+                                <input type="file" id="titleCertificate" accept="application/pdf,image/jpeg,image/png">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Plano catastral</label>
+                            <div class="file-upload">
+                                <i class="fas fa-map"></i>
+                                <p>Haga clic o arrastre para subir plano catastral</p>
+                                <input type="file" id="cadastralPlan" accept="application/pdf,image/jpeg,image/png">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Carta de autorización de corretaje (si aplica)</label>
+                            <div class="file-upload">
+                                <i class="fas fa-file-contract"></i>
+                                <p>Haga clic o arrastre para subir carta</p>
+                                <input type="file" id="brokerageAuthorization" accept="application/pdf,image/jpeg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Otros documentos</label>
+                            <div class="file-upload">
+                                <i class="fas fa-file"></i>
+                                <p>Haga clic o arrastre para subir otros documentos</p>
+                                <input type="file" id="otherDocuments" accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple>
+                            </div>
+                            <small>Formatos aceptados: PDF, Word</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Página 8: Preferencias -->
+                <div class="form-page" data-page="8">
+                    <div class="form-section">
+                        <h3 class="form-section-title">
+                            <i class="fas fa-cog"></i>
+                            Preferencias
+                        </h3>
+                        <div class="form-row">
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="showPhone">Mostrar número de teléfono público</label>
+                                        <div class="radio-group">
+                                        <div class="radio-option">
+                                            <input type="radio" id="showPhoneYes" name="showPhone" value="si" checked>
+                                            <label for="showPhoneYes">Sí</label>
+                                        </div>
+                                        <div class="radio-option">
+                                            <input type="radio" id="showPhoneNo" name="showPhone" value="no">
+                                            <label for="showPhoneNo">No</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="contactSchedule">Horario preferido para contactos</label>
+                                    <select id="contactSchedule" class="form-control">
+                                        <option value="cualquier">Cualquier horario</option>
+                                        <option value="manana">Mañanas (8am - 12pm)</option>
+                                        <option value="tarde">Tardes (1pm - 6pm)</option>
+                                        <option value="noche">Noches (6pm - 9pm)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="exclusiveListing">¿Desea publicación exclusiva con nuestra agencia?</label>
+                                    <div class="radio-group">
+                                        <div class="radio-option">
+                                            <input type="radio" id="exclusiveYes" name="exclusiveListing" value="si">
+                                            <label for="exclusiveYes">Sí</label>
+                                        </div>
+                                        <div class="radio-option">
+                                            <input type="radio" id="exclusiveNo" name="exclusiveListing" value="no" checked>
+                                            <label for="exclusiveNo">No</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-column">
+                                <div class="form-group">
+                                    <label class="form-label" for="listingDuration">Duración de la publicación</label>
+                                    <select id="listingDuration" class="form-control">
+                                        <option value="30">30 días</option>
+                                        <option value="60">60 días</option>
+                                        <option value="90">90 días</option>
+                                        <option value="120">120 días</option>
+                                        <option value="indefinido">Indefinido</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Notas adicionales para el agente</label>
+                            <textarea id="agentNotes" class="form-control" placeholder="Escriba aquí cualquier instrucción especial o información adicional que desee compartir con nuestro equipo"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Página 9: Finalizar -->
+                <div class="form-page" data-page="9">
+                    <div class="form-section">
+                        <h3 class="form-section-title">
+                            <i class="fas fa-check-circle"></i>
+                            Revisión y Finalización
+                        </h3>
+                        <div class="form-group">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="termsAgreement" required>
+                                <label for="termsAgreement">Acepto los <a href="#" target="_blank">Términos y Condiciones</a> y la <a href="#" target="_blank">Política de Privacidad</a> *</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="marketingConsent">
+                                <label for="marketingConsent">Acepto recibir comunicaciones de marketing sobre servicios inmobiliarios</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <p>Por favor revise cuidadosamente toda la información ingresada antes de enviar el formulario. Un representante de nuestra agencia se pondrá en contacto con usted dentro de las próximas 24 horas para verificar los detalles y coordinar los próximos pasos.</p>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="prevBtn">Anterior</button>
+            <button type="button" class="btn btn-secondary" id="nextBtn">Siguiente</button>
+            <button type="button" class="btn btn-primary" id="submitBtn" style="display: none;">Enviar Formulario</button>
+        </div>
+    </div>
+</div>
+<!-- Script para el funcionamiento del modal -->
+<script>
+    
+// Reemplaza todo el script del modal de nueva propiedad con este:
+
+document.addEventListener('DOMContentLoaded', function() {
+    const newPropertyModal = document.getElementById('newPropertyModal');
+    const closeNewPropertyModal = document.querySelector('#newPropertyModal .close-modal');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const formPages = document.querySelectorAll('.form-page');
+    const steps = document.querySelectorAll('.step');
+    
+    let currentPage = 1;
+    const totalPages = formPages.length;
+    
+    function updateButtons() {
+        prevBtn.style.display = currentPage === 1 ? 'none' : 'block';
+        nextBtn.style.display = currentPage === totalPages ? 'none' : 'block';
+        submitBtn.style.display = currentPage === totalPages ? 'block' : 'none';
+        
+        steps.forEach(step => {
+            const stepNumber = parseInt(step.dataset.step);
+            if (stepNumber < currentPage) {
+                step.classList.add('completed');
+                step.classList.remove('active');
+            } else if (stepNumber === currentPage) {
+                step.classList.add('active');
+                step.classList.remove('completed');
+            } else {
+                step.classList.remove('active', 'completed');
+            }
+        });
+    }
+    
+    function goToPage(page) {
+        if (page > currentPage) {
+            const currentForm = document.querySelector(`.form-page[data-page="${currentPage}"]`);
+            const requiredFields = currentForm.querySelectorAll('[required]');
+            let isValid = true;
+            
+            requiredFields.forEach(field => {
+                if (!field.value) {
+                    field.style.borderColor = 'red';
+                    isValid = false;
+                } else {
+                    field.style.borderColor = '';
+                }
+            });
+            
+            if (!isValid) {
+                alert('Por favor complete todos los campos requeridos antes de continuar.');
+                return;
+            }
+        }
+        
+        formPages.forEach(formPage => {
+            formPage.classList.remove('active');
+            if (parseInt(formPage.dataset.page) === page) {
+                formPage.classList.add('active');
+            }
+        });
+        
+        currentPage = page;
+        updateButtons();
+        newPropertyModal.querySelector('.modal-body').scrollTop = 0;
+    }
+    
+    // Cerrar modal al hacer clic en la X
+    closeNewPropertyModal.addEventListener('click', function() {
+        newPropertyModal.style.display = 'none';
+    });
+    
+    // Cerrar modal al hacer clic fuera del contenido
+    window.addEventListener('click', function(event) {
+        if (event.target === newPropertyModal) {
+            newPropertyModal.style.display = 'none';
+        }
+    });
+    
+    prevBtn.addEventListener('click', function() {
+        if (currentPage > 1) {
+            goToPage(currentPage - 1);
+        }
+    });
+    
+    nextBtn.addEventListener('click', function() {
+        if (currentPage < totalPages) {
+            goToPage(currentPage + 1);
+        }
+    });
+    
+    submitBtn.addEventListener('click', function() {
+    if (!document.getElementById('termsAgreement').checked) {
+        alert('Debe aceptar los términos y condiciones para continuar.');
+        return;
+    }
+    // Añade esto antes de enviar el formulario
+function validateForm() {
+    const requiredFields = document.querySelectorAll('[required]');
+    let isValid = true;
+    
+    requiredFields.forEach(field => {
+        if (!field.value) {
+            field.style.borderColor = 'red';
+            isValid = false;
+        } else {
+            field.style.borderColor = '';
+        }
+    });
+    
+    // Validación específica para el email
+    const email = document.getElementById('ownerEmail');
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
+        email.style.borderColor = 'red';
+        isValid = false;
+    }
+    
+    return isValid;
+}
+
+// Modifica el evento click del submitBtn
+submitBtn.addEventListener('click', function() {
+    if (!validateForm()) {
+        alert('Por favor complete todos los campos requeridos correctamente.');
+        return;
+    }
+    
+    if (!document.getElementById('termsAgreement').checked) {
+        alert('Debe aceptar los términos y condiciones para continuar.');
+        return;
+    }
+    
+    document.getElementById('propertyForm').submit();
+});
+    // Envía el formulario
+    document.getElementById('propertyForm').submit();
+});
+    
+    // Mostrar previsualización de imágenes
+    document.getElementById('propertyImages').addEventListener('change', function(e) {
+        const previewContainer = document.getElementById('imagesPreview');
+        previewContainer.innerHTML = '';
+        
+        if (this.files.length > 10) {
+            alert('Solo puede subir un máximo de 10 imágenes.');
+            this.value = '';
+            return;
+        }
+        
+        Array.from(this.files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = document.createElement('img');
+                img.src = event.target.result;
+                img.classList.add('thumbnail');
+                previewContainer.appendChild(img);
+            }
+            reader.readAsDataURL(file);
+        });
+    });
+    
+    updateButtons();
+           // Desplazar hacia arriba para mejor experiencia de usuario
+           modal.querySelector('.modal-body').scrollTop = 0;
+});
+            
+     
+        
+        // Event listeners
+        closeModal.addEventListener('click', function() {
+            modal.style.display = 'none';
+        });
+        
+        prevBtn.addEventListener('click', function() {
+            if (currentPage > 1) {
+                goToPage(currentPage - 1);
+            }
+        });
+        
+        nextBtn.addEventListener('click', function() {
+            if (currentPage < totalPages) {
+                goToPage(currentPage + 1);
+            }
+        });
+        
+        submitBtn.addEventListener('click', function() {
+            // Validar términos y condiciones
+            if (!document.getElementById('termsAgreement').checked) {
+                alert('Debe aceptar los términos y condiciones para continuar.');
+                return;
+            }
+            
+            // Aquí iría el código para enviar el formulario
+            alert('Formulario enviado con éxito. Nos pondremos en contacto pronto.');
+            modal.style.display = 'none';
+            
+            // En un caso real, aquí se enviarían los datos al servidor
+            // const formData = new FormData(document.getElementById('propertyForm'));
+            // fetch('/submit-property', { method: 'POST', body: formData })
+            //   .then(response => response.json())
+            //   .then(data => console.log('Success:', data))
+            //   .catch(error => console.error('Error:', error));
+        });
+        
+        // Mostrar previsualización de imágenes
+        document.getElementById('propertyImages').addEventListener('change', function(e) {
+            const previewContainer = document.getElementById('imagesPreview');
+            previewContainer.innerHTML = '';
+            
+            if (this.files.length > 10) {
+                alert('Solo puede subir un máximo de 10 imágenes.');
+                this.value = '';
+                return;
+            }
+            
+            Array.from(this.files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = document.createElement('img');
+                    img.src = event.target.result;
+                    img.classList.add('thumbnail');
+                    previewContainer.appendChild(img);
+                }
+                reader.readAsDataURL(file);
+            });
+        });
+        
+        // Inicializar botones
+        updateButtons();
+    
+    // Función para abrir el modal (se llamaría desde otro lugar de la aplicación)
+    function openPropertyModal() {
+        document.getElementById('propertyModal').style.display = 'block';
+    }
+    submitBtn.addEventListener('click', function() {
+    if (!validateForm()) {
+        alert('Por favor complete todos los campos requeridos correctamente.');
+        return;
+    }
+    
+    if (!document.getElementById('termsAgreement').checked) {
+        alert('Debe aceptar los términos y condiciones para continuar.');
+        return;
+    }
+    
+    // Muestra un spinner o mensaje de carga
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+    
+    document.getElementById('propertyForm').submit();
+});
+
+</script>
